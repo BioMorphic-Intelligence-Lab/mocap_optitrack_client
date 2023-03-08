@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mocap_optitrack_client</name>
+  <version>0.0.1</version>
+  <description>ROS2 node that handles the connection with Motive software through the NatNet client library. For further details see: https://v23.wiki.optitrack.com/index.php?title=NatNet_SDK_3.1</description>
+  <author email="pietro.pustina@gmail.com">Pietro Pustina</author>
+  <maintainer email="maximilian@stoelzle.ch">Maximilian Stölzle</maintainer>
+  <license>MIT license</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <build_depend>px4_msgs</build_depend>
+  <build_depend>px4_ros_com</build_depend>
+  <build_depend>mocap_optitrack_interfaces</build_depend>
+
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <depend>rclcpp</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

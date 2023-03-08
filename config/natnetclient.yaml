@@ -1,0 +1,28 @@
+# Configuration file for the NatNet client node (mocap_optitrack_pub)
+# For details on the parameters see: https://v23.wiki.optitrack.com/index.php?title=Data_Streaming_Pane
+natnet_client:
+  ros__parameters:
+    # Address of the NatNet server
+    # Set to "host.docker.internal" if the node runs in a docker container on the same machine of the NatNet server.
+    # If, in addition, the container is hosted on a linux machine be sure to 
+    # a) run the docker container with the option : --add-host host.docker.internal:host-gateway.
+    # or
+    # b) run the container with the option --net host
+    # If the NatNet server is hosted on another machine, please use the IP address of the other machine
+    # make sure to deactivate the Windows Firewall and check with ping if the IP is reachable
+    # Also, the IP of the correct network adapter needs to be selected in Motive
+    server_address: "192.168.209.81"
+    # Type of the connection: 0 = multicast, 1 = unicast.
+    connection_type: 0 #default value: 0
+    # Multicast address of the server
+    multi_cast_address: "224.0.0.1" #default value : 239.255.42.99
+    # Port where to send commands
+    server_command_port: 1510 #default value: 1510
+    # Port where to receive incoming data
+    server_data_port: 1511 #default value: 1511
+    # Topic where data is published
+    pub_topic: "/base_pose" #"/optitrack_pose"
+    px4_topic: "/fmu/in/mocap_vehicle_odometry"
+    # Indeces of the objects of interest
+    am_rigid_body_idx: 2
+    wall_rigid_body_idx: -1
