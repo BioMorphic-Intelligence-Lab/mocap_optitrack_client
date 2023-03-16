@@ -21,8 +21,9 @@ natnet_client:
     # Port where to receive incoming data
     server_data_port: 1511 #default value: 1511
     # Topic where data is published
-    pub_topic: "/base_pose" #"/optitrack_pose"
-    px4_topic: "/fmu/in/mocap_vehicle_odometry"
+    pub_topic: "/mocap_pose"
+    # Needs to be visual odometry instead of mocap odometry sice EKF2 (in px4) only subscribes to that topic
+    px4_topic: "/fmu/in/vehicle_visual_odometry"
     # Indeces of the objects of interest
-    am_rigid_body_idx: 2
+    am_rigid_body_idx: 1
     wall_rigid_body_idx: -1

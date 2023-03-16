@@ -32,7 +32,8 @@ MoCapPublisher::MoCapPublisher(): Node("natnet_client")
   this->declare_parameter<uint16_t>("server_command_port", 1510);
   this->declare_parameter<uint16_t>("server_data_port", 1511);
   this->declare_parameter<std::string>("pub_topic", "optitrack_pose");
-  this->declare_parameter<std::string>("px4_topic", "/fmu/in/mocap_vehicle_odometry");
+  // Needs to be visual odometry instead of mocap odometry sice EKF2 (in px4) only subscribes to that topic
+  this->declare_parameter<std::string>("px4_topic", "/fmu/in/vehicle_visual_odometry");
   this->declare_parameter<uint16_t>("am_rigid_body_idx", -1);
   this->declare_parameter<uint16_t>("wall_rigid_body_idx", -1);
 
@@ -46,6 +47,9 @@ MoCapPublisher::MoCapPublisher(): Node("natnet_client")
   this->_px4_topic = this->get_parameter("px4_topic").as_string();
   this->_px4_publisher = this->create_publisher<px4_msgs::msg::VehicleOdometry>(this->_px4_topic.c_str(), 10);
   //
+  //Create Subscriptions
+  this->_timesync_sub = this->create_subscription<px4_msgs::msg::TimesyncStatus>("/fmu/out/timesync_status", rclcpp::SensorDataQoS(), std::bind(&MoCapPublisher::_timesync_callback, this, std::placeholders::_1));
+
   //Get the current time for the timestamp of the messages
   this->t_start = high_resolution_clock::now();//get the current time
   //
@@ -59,6 +63,13 @@ MoCapPublisher::MoCapPublisher(): Node("natnet_client")
   std::string address_;
   this->get_parameter("server_address", address_);
   RCLCPP_INFO(this->get_logger(),address_.c_str());
+}
+
+
+void MoCapPublisher::_timesync_callback(const px4_msgs::msg::TimesyncStatus::SharedPtr msg)
+{
+  this->_timestamp_local = std::chrono::steady_clock::now();
+  this->_timestamp_remote.store(msg->timestamp);
 }
 
 // Method that send over the ROS network the data of a rigid body
@@ -101,8 +112,10 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
 px4_msgs::msg::VehicleOdometry MoCapPublisher::_ros2px4(geometry_msgs::msg::PoseStamped pose)
 {
   px4_msgs::msg::VehicleOdometry px4_pose;
-  px4_pose.timestamp = (uint64_t) (pose.header.stamp.sec * 1000000 
-                                 + pose.header.stamp.nanosec * 0.001);
+  auto now = std::chrono::steady_clock::now();
+
+  px4_pose.timestamp = this->_timestamp_remote.load() + std::chrono::round<std::chrono::microseconds>(now - this->_timestamp_local).count();
+  px4_pose.timestamp_sample = px4_pose.timestamp;
   px4_pose.pose_frame = px4_pose.POSE_FRAME_NED;
 
   Eigen::Vector3d position = Eigen::Vector3d(pose.pose.position.x,
@@ -117,8 +130,7 @@ px4_msgs::msg::VehicleOdometry MoCapPublisher::_ros2px4(geometry_msgs::msg::Pose
                                                       pose.pose.orientation.x,
                                                       pose.pose.orientation.y,
                                                       pose.pose.orientation.z);
-  orientation = px4_ros_com::frame_transforms::ned_to_enu_orientation(
-                px4_ros_com::frame_transforms::aircraft_to_baselink_orientation(orientation));  
+  orientation = px4_ros_com::frame_transforms::ned_to_enu_orientation(orientation);  
   px4_pose.q = {orientation.x(),
                 orientation.y(),
                 orientation.z(),
@@ -131,15 +143,15 @@ px4_msgs::msg::VehicleOdometry MoCapPublisher::_ros2px4(geometry_msgs::msg::Pose
 geometry_msgs::msg::Pose MoCapPublisher::_mocap2ros(sRigidBodyData body)
 {
   geometry_msgs::msg::Pose pose;
-  //TODO this depends on how optitrack is set up
-  Eigen::Matrix3d transformation = this->_rot_x(-M_PI_2) * this->_rot_z(M_PI);
+
+  Eigen::Matrix3d transformation = this->_rot_x(M_PI_2);
+  Eigen::Quaterniond transformation_q = Eigen::Quaterniond(transformation).normalized();
 
   Eigen::Vector3d position;
   position << body.x, body.y, body.z;
   position = transformation*position;
 
   Eigen::Quaterniond orientation(body.qw, body.qx, body.qy, body.qz);
-  Eigen::Quaterniond transformation_q = Eigen::Quaterniond(transformation); 
   orientation =  transformation_q * orientation * transformation_q.conjugate();
 
   pose.position.x = position.x();
