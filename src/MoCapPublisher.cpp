@@ -114,7 +114,7 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
     wall_pose.header.stamp = this->now();
     wall_pose.header.frame_id = "world";
 
-    wall_pose.pose = this->_mocap2ros(body);
+    wall_pose.pose = this->_mocap2ros(wall);
     this->_wall_publisher->publish(wall_pose);
   }
 }
