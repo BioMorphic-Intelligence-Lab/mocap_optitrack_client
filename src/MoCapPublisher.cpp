@@ -96,12 +96,30 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
     base_pose.header.stamp = this->now();
     base_pose.header.frame_id = "world";
 
+    RCLCPP_DEBUG(this->get_logger(), "MOCAP q = [w: %f, x: %f, y: %f, z: %f]",
+                                  body.qw, body.qx, body.qy, body.qz);
+
+
     base_pose.pose = this->_mocap2ros(body);
     this->_pose_publisher->publish(base_pose);
+
+
+    RCLCPP_DEBUG(this->get_logger(), "ROS q = [w: %f, x: %f, y: %f, z: %f]",
+                                  base_pose.pose.orientation.w,
+                                  base_pose.pose.orientation.x,
+                                  base_pose.pose.orientation.y,
+                                  base_pose.pose.orientation.z);
 
     if(!this->_px4_topic.empty())
     {
       px4_msgs::msg::VehicleOdometry px4_pose = this->_ros2px4(base_pose);
+
+      RCLCPP_DEBUG(this->get_logger(), "PX4 q = [w: %f, x: %f, y: %f, z: %f]",
+                                  px4_pose.q[0],
+                                  px4_pose.q[1],
+                                  px4_pose.q[2],
+                                  px4_pose.q[3]);
+
       this->_px4_publisher->publish(px4_pose);
     }
   }
@@ -113,6 +131,7 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
     
     wall_pose.header.stamp = this->now();
     wall_pose.header.frame_id = "world";
+    
 
     wall_pose.pose = this->_mocap2ros(wall);
     this->_wall_publisher->publish(wall_pose);
@@ -136,16 +155,12 @@ px4_msgs::msg::VehicleOdometry MoCapPublisher::_ros2px4(geometry_msgs::msg::Pose
   px4_pose.position = {position.x(),
                        position.y(),
                        position.z()};
-  
-  Eigen::Quaterniond orientation = Eigen::Quaterniond(pose.pose.orientation.w,
-                                                      pose.pose.orientation.x,
-                                                      pose.pose.orientation.y,
-                                                      pose.pose.orientation.z);
-  orientation = px4_ros_com::frame_transforms::ned_to_enu_orientation(orientation);  
-  px4_pose.q = {orientation.x(),
-                orientation.y(),
-                orientation.z(),
-                orientation.w()};
+
+  // ENU to NED
+  px4_pose.q = {pose.pose.orientation.w, // W
+                pose.pose.orientation.y, // X
+                pose.pose.orientation.x, // Y
+               -pose.pose.orientation.z};
 
   return px4_pose;
 
@@ -156,14 +171,16 @@ geometry_msgs::msg::Pose MoCapPublisher::_mocap2ros(sRigidBodyData body)
   geometry_msgs::msg::Pose pose;
 
   Eigen::Matrix3d transformation = this->_rot_x(M_PI_2);
-  Eigen::Quaterniond transformation_q = Eigen::Quaterniond(transformation).normalized();
+  Eigen::Quaterniond q = Eigen::Quaterniond(transformation);
 
   Eigen::Vector3d position;
   position << body.x, body.y, body.z;
   position = transformation*position;
 
   Eigen::Quaterniond orientation(body.qw, body.qx, body.qy, body.qz);
-  orientation =  transformation_q * orientation * transformation_q.conjugate();
+  orientation = q * orientation * q.conjugate();
+  //orientation.y() = -orientation.z();
+  //orientation.z() = orientation.y();
 
   pose.position.x = position.x();
   pose.position.y = position.y();
