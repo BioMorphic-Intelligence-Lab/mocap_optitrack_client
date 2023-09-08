@@ -171,7 +171,7 @@ geometry_msgs::msg::Pose MoCapPublisher::_mocap2ros(sRigidBodyData body)
 {
   geometry_msgs::msg::Pose pose;
 
-  Eigen::Matrix3d transformation = this->_rot_x(M_PI_2);
+  Eigen::Matrix3d transformation = common::rot_z(M_PI);
   Eigen::Quaterniond q = Eigen::Quaterniond(transformation);
 
   Eigen::Vector3d position;
@@ -193,36 +193,6 @@ geometry_msgs::msg::Pose MoCapPublisher::_mocap2ros(sRigidBodyData body)
   return pose;
 }
 
-
-Eigen::Matrix3d MoCapPublisher::_rot_x(double theta)
-{
-  double sT = sin(theta), cT = cos(theta);
-  Eigen::Matrix3d rot;
-  rot << 1, 0, 0,
-         0, cT, -sT,
-         0, sT, cT;
-  return rot;
-}
-
-Eigen::Matrix3d MoCapPublisher::_rot_y(double theta)
-{
-
-  double sT = sin(theta), cT = cos(theta);
-  Eigen::Matrix3d rot;
-  rot << cT, 0, sT,
-         0, 1, 0,
-         -sT, 0, cT;
-  return rot;
-}
-Eigen::Matrix3d MoCapPublisher::_rot_z(double theta)
-{
-  double sT = sin(theta), cT = cos(theta);
-  Eigen::Matrix3d rot;
-  rot << cT, -sT, 0,
-         sT, cT, 0,
-         0, 0, 1;
-  return rot;
-}
 
 std::string MoCapPublisher::getServerAddress()
 {
