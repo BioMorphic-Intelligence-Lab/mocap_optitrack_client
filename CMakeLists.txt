@@ -19,7 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)#publisher
 find_package(rclcpp_components REQUIRED)
 find_package(px4_msgs REQUIRED)
-find_package(px4_ros_com REQUIRED)
+find_package(common REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(mocap_optitrack_interfaces REQUIRED)
 
@@ -46,7 +46,6 @@ target_include_directories(mocap_optitrack_client
 PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
-  ${px4_ros_com_INCLUDE_DIRS}
   ${px4_msgs_INCLUDE_DIRS}
   ${mocap_optitrack_interfaces_INCLUDE_DIRS}
 )
@@ -55,7 +54,7 @@ PUBLIC
   natnet_sdk
   rclcpp::rclcpp
   Eigen3::Eigen
-  ${px4_ros_com_LIBRARIES}
+  common::common
   ${px4_msgs_LIBRARIES}
   ${mocap_optitrack_interfaces_LIBRARIES}
 )
