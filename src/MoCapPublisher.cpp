@@ -179,7 +179,7 @@ geometry_msgs::msg::Pose MoCapPublisher::_mocap2ros(sRigidBodyData body)
   position = transformation*position;
 
   Eigen::Quaterniond orientation(body.qw, body.qx, body.qy, body.qz);
-  orientation =  transformation_q * orientation;
+  orientation =  q * orientation;
 
   pose.position.x = position.x();
   pose.position.y = position.y();
