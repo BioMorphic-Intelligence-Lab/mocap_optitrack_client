@@ -12,6 +12,7 @@
 #include <vector>
 // Include the MoCap NatNet client
 #include <MoCapNatNetClient.h>
+#include "common/common.hpp"
 
 using namespace std;
 using namespace std::chrono_literals;
@@ -113,7 +114,6 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
     
     wall_pose.header.stamp = this->now();
     wall_pose.header.frame_id = "world";
-
     wall_pose.pose = this->_mocap2ros(wall);
     this->_wall_publisher->publish(wall_pose);
   }
@@ -127,25 +127,23 @@ px4_msgs::msg::VehicleOdometry MoCapPublisher::_ros2px4(geometry_msgs::msg::Pose
 
   px4_pose.timestamp = this->_timestamp_remote.load() + std::chrono::round<std::chrono::microseconds>(now - this->_timestamp_local).count();
   px4_pose.timestamp_sample = px4_pose.timestamp;
-  px4_pose.pose_frame = px4_pose.POSE_FRAME_NED;
+  px4_pose.pose_frame = px4_msgs::msg::VehicleOdometry::POSE_FRAME_NED;
 
-  Eigen::Vector3d position = Eigen::Vector3d(pose.pose.position.x,
-                                             pose.pose.position.y,
-                                             pose.pose.position.z);
-  position = px4_ros_com::frame_transforms::ned_to_enu_local_frame(position);   
-  px4_pose.position = {position.x(),
-                       position.y(),
-                       position.z()};
+
+  Eigen::Vector3d enu_p(pose.pose.position.x,
+                        pose.pose.position.y,
+                        pose.pose.position.z);
+  Eigen::Vector3d ned_p = common::enu_2_ned(enu_p);
+
+  Eigen::Quaterniond enu_q(pose.pose.orientation.w,
+                           pose.pose.orientation.x,
+                           pose.pose.orientation.y,
+                           pose.pose.orientation.z);
+  Eigen::Quaterniond ned_q = common::enu_2_ned(enu_q);
+
   
-  Eigen::Quaterniond orientation = Eigen::Quaterniond(pose.pose.orientation.w,
-                                                      pose.pose.orientation.x,
-                                                      pose.pose.orientation.y,
-                                                      pose.pose.orientation.z);
-  orientation = px4_ros_com::frame_transforms::ned_to_enu_orientation(orientation);  
-  px4_pose.q = {orientation.x(),
-                orientation.y(),
-                orientation.z(),
-                orientation.w()};
+  px4_pose.position = {(float)ned_p.x(), (float)ned_p.y(), (float)ned_p.z()};
+  px4_pose.q = {(float)ned_q.x(), (float)ned_q.y(), (float)ned_q.z(), (float)ned_q.w()};
 
   return px4_pose;
 
@@ -163,7 +161,7 @@ geometry_msgs::msg::Pose MoCapPublisher::_mocap2ros(sRigidBodyData body)
   position = transformation*position;
 
   Eigen::Quaterniond orientation(body.qw, body.qx, body.qy, body.qz);
-  orientation =  transformation_q * orientation * transformation_q.conjugate();
+  orientation =  transformation_q * orientation;
 
   pose.position.x = position.x();
   pose.position.y = position.y();
