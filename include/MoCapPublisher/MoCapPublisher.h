@@ -20,6 +20,7 @@ private:
     //Attributes
     rclcpp::Subscription<px4_msgs::msg::TimesyncStatus>::SharedPtr _timesync_sub;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _pose_publisher;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _ee_publisher;
     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr _wall_publisher;
     rclcpp::Publisher<px4_msgs::msg::VehicleOdometry>::SharedPtr _px4_publisher;
 
@@ -27,10 +28,10 @@ private:
     high_resolution_clock::time_point t_start;
 
     //Rigid body indeces
-    int am_rigid_body_idx, wall_rigid_body_idx;
+    int am_rigid_body_idx, ee_rigid_body_idx, wall_rigid_body_idx;
 
     //Publishing topic names
-    std::string _pub_topic, _px4_topic, _wall_topic;
+    std::string _pub_topic, _ee_topic, _px4_topic, _wall_topic;
 
     //Transformation Functions
     geometry_msgs::msg::Pose _mocap2ros(sRigidBodyData body);

@@ -33,20 +33,25 @@ MoCapPublisher::MoCapPublisher(): Node("natnet_client")
   this->declare_parameter<uint16_t>("server_command_port", 1510);
   this->declare_parameter<uint16_t>("server_data_port", 1511);
   this->declare_parameter<std::string>("pub_topic", "optitrack_pose");
+  this->declare_parameter<std::string>("ee_topic", "ee_pose");
   this->declare_parameter<std::string>("wall_topic", "wall_pose");
   // Needs to be visual odometry instead of mocap odometry sice EKF2 (in px4) only subscribes to that topic
   this->declare_parameter<std::string>("px4_topic", "/fmu/in/vehicle_visual_odometry");
   this->declare_parameter<uint16_t>("am_rigid_body_idx", -1);
+  this->declare_parameter<uint16_t>("ee_rigid_body_idx", -1);
   this->declare_parameter<uint16_t>("wall_rigid_body_idx", -1);
 
   this->am_rigid_body_idx = this->get_parameter("am_rigid_body_idx").as_int();
+  this->ee_rigid_body_idx = this->get_parameter("ee_rigid_body_idx").as_int();
   this->wall_rigid_body_idx = this->get_parameter("wall_rigid_body_idx").as_int();
   //
   //Create the publishers
   this->_pub_topic = this->get_parameter("pub_topic").as_string();
+  this->_ee_topic = this->get_parameter("ee_topic").as_string();
   this->_wall_topic = this->get_parameter("wall_topic").as_string();
 
   this->_pose_publisher = this->create_publisher<geometry_msgs::msg::PoseStamped>(this->_pub_topic.c_str(), 10);
+  this->_ee_publisher = this->create_publisher<geometry_msgs::msg::PoseStamped>(this->_ee_topic.c_str(), 10);
   this->_wall_publisher = this->create_publisher<geometry_msgs::msg::PoseStamped>(this->_wall_topic.c_str(), 10);
 
   this->_px4_topic = this->get_parameter("px4_topic").as_string();
@@ -81,16 +86,17 @@ void MoCapPublisher::_timesync_callback(const px4_msgs::msg::TimesyncStatus::Sha
 void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigidBodies)
 {
   sRigidBodyData body;
+  sRigidBodyData ee;
   sRigidBodyData wall;
+  
   for(int i=0; i < nRigidBodies; i++) 
   {
     if(bodies_ptr[i].ID == this->am_rigid_body_idx) body = bodies_ptr[i];
+    else if(bodies_ptr[i].ID == this->ee_rigid_body_idx) ee = bodies_ptr[i];
     else if(bodies_ptr[i].ID == this->wall_rigid_body_idx) wall = bodies_ptr[i];
   }
 
   rclcpp::Time now = this->now();
-
-  //Instanciate variables
   if(this->am_rigid_body_idx >= 0)
   {
     geometry_msgs::msg::PoseStamped base_pose;
@@ -125,6 +131,17 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
     }
   }
 
+
+  if(this->ee_rigid_body_idx >= 0)
+  {
+
+    geometry_msgs::msg::PoseStamped ee_pose;
+    
+    ee_pose.header.stamp = this->now();
+    ee_pose.header.frame_id = "world";
+    ee_pose.pose = this->_mocap2ros(ee);
+    this->_ee_publisher->publish(ee_pose);
+  }
 
   if(this->wall_rigid_body_idx >= 0)
   {
