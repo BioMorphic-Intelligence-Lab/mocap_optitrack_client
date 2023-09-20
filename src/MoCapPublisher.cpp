@@ -17,6 +17,7 @@
 using namespace std;
 using namespace std::chrono_literals;
 using namespace std::chrono;
+using namespace personal;
 
 bool cmpRigidBodyId(sRigidBodyData body_a, sRigidBodyData body_b)
 {
@@ -122,10 +123,10 @@ void MoCapPublisher::sendRigidBodyMessage(sRigidBodyData* bodies_ptr, int nRigid
       px4_msgs::msg::VehicleOdometry px4_pose = this->_ros2px4(base_pose);
 
       RCLCPP_DEBUG(this->get_logger(), "PX4 q = [w: %f, x: %f, y: %f, z: %f]",
+                                  px4_pose.q[3],
                                   px4_pose.q[0],
                                   px4_pose.q[1],
-                                  px4_pose.q[2],
-                                  px4_pose.q[3]);
+                                  px4_pose.q[2]);
 
       this->_px4_publisher->publish(px4_pose);
     }
